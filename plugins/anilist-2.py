@@ -1,21 +1,10 @@
-""" Search for Anime related Info """
-
-# Module Capable of fetching Anime, Airing, Character Info &
-# Anime Reverse Search made for UserGe.
-# AniList Api (GitHub: https://github.com/AniList/ApiV2-GraphQL-Docs)
-# Anime Reverse Search Powered by tracemoepy.
-# TraceMoePy (GitHub: https://github.com/DragSama/tracemoepy)
-# (C) Author: Phyco-Ninja (https://github.com/Phyco-Ninja) (@PhycoNinja13b)
-
 import os
 from datetime import datetime
 
 import flag as cflag
 import humanize
-import tracemoepy
 from aiohttp import ClientSession
 from userge import Message, get_collection, userge
-from userge.utils import media_to_image
 from userge.utils import post_to_telegraph as post_to_tp
 
 # Logging Errors
@@ -207,7 +196,7 @@ def make_it_rw(time_stamp, as_countdown=False):
 
 
 @userge.on_cmd(
-    "anime",
+    "ani",
     about={
         "header": "Anime Search",
         "description": "Search for Anime using AniList API",
@@ -344,122 +333,7 @@ async def anim_arch(message: Message):
 
 
 @userge.on_cmd(
-    "airing",
-    about={
-        "header": "Airing Info",
-        "description": "Fetch Airing Detail of a Anime",
-        "usage": "{tr}airing [Anime Name | Anilist ID]",
-        "examples": "{tr}airing 108632",
-    },
-)
-async def airing_anim(message: Message):
-    """ Get Airing Detail of Anime """
-    query = message.input_str
-    if not query:
-        await message.err("NameError: 'query' not defined")
-        return
-    vars_ = {"search": query, "asHtml": True, "type": "ANIME"}
-    if query.isdigit():
-        vars_ = {"id": int(query), "asHtml": True, "type": "ANIME"}
-    result = await return_json_senpai(ANIME_QUERY, vars_)
-    error = result.get("errors")
-    if error:
-        await CLOG.log(f"**ANILIST RETURNED FOLLOWING ERROR:**\n\n`{error}`")
-        error_sts = error[0].get("message")
-        await message.err(f"[{error_sts}]")
-        return
-
-    data = result["data"]["Media"]
-
-    # Airing Details
-    mid = data.get("id")
-    romaji = data["title"]["romaji"]
-    english = data["title"]["english"]
-    native = data["title"]["native"]
-    status = data.get("status")
-    episodes = data.get("episodes")
-    country = data.get("countryOfOrigin")
-    c_flag = cflag.flag(country)
-    source = data.get("source")
-    coverImg = data.get("coverImage")["extraLarge"]
-    genres = data.get("genres")
-    genre = genres[0]
-    if len(genres) != 1:
-        genre = ", ".join(genres)
-    score = data.get("averageScore")
-    air_on = None
-    if data["nextAiringEpisode"]:
-        nextAir = data["nextAiringEpisode"]["airingAt"]
-        episode = data["nextAiringEpisode"]["episode"]
-        air_on = make_it_rw(nextAir, True)
-
-    title_ = english or romaji
-    out = f"[{c_flag}] **{native}** \n   (`{title_}`)"
-    out += f"\n\n**ID:** `{mid}`"
-    out += f"\n**Status:** `{status}`\n"
-    out += f"**Source:** `{source}`\n"
-    out += f"**Score:** `{score}`\n"
-    out += f"**Genres:** `{genre}`\n"
-    if air_on:
-        out += f"**Airing Episode:** `[{episode}/{episodes}]`\n"
-        out += f"\n`{air_on}`"
-    if len(out) > 1024:
-        await message.edit(out)
-        return
-    await message.reply_photo(coverImg, caption=out)
-    await message.delete()
-
-
-@userge.on_cmd(
-    "scheduled",
-    about={
-        "header": "Scheduled Animes",
-        "description": "Fetch a list of Scheduled Animes from "
-        "AniList API. [<b>Note:</b> If Query exceeds "
-        "Limit (i.e. 9 aprox) remaining Animes from "
-        "will be directly posted to Log Channel "
-        "to avoid Spam of Current Chat.]",
-        "usage": "{tr}scheduled",
-    },
-)
-async def get_schuled(message: Message):
-    """ Get List of Scheduled Anime """
-    var = {"notYetAired": True}
-    await message.edit("`Fetching Scheduled Animes`")
-    result = await return_json_senpai(AIRING_QUERY, var)
-    error = result.get("errors")
-    if error:
-        await CLOG.log(f"**ANILIST RETURNED FOLLOWING ERROR:**\n\n{error}")
-        error_sts = error[0].get("message")
-        await message.err(f"[{error_sts}]")
-        return
-
-    data = result["data"]["Page"]["airingSchedules"]
-    c = 0
-    totl_schld = len(data)
-    out = ""
-    for air in data:
-        romaji = air["media"]["title"]["romaji"]
-        english = air["media"]["title"]["english"]
-        mid = air["mediaId"]
-        epi_air = air["episode"]
-        air_at = make_it_rw(air["airingAt"], True)
-        site = air["media"]["siteUrl"]
-        title_ = english or romaji
-        out += f"<h3>[🇯🇵]{title_}</h3>"
-        out += f" • <b>ID:</b> {mid}<br>"
-        out += f" • <b>Airing Episode:</b> {epi_air}<br>"
-        out += f" • <b>Next Airing:</b> {air_at}<br>"
-        out += f" • <a href='{site}'>[Visit on anilist.co]</a><br><br>"
-        c += 1
-    if out:
-        out_p = f"<h1>Showing [{c}/{totl_schld}] Scheduled Animes:</h1><br><br>{out}"
-        link = post_to_tp("Scheduled Animes", out_p)
-        await message.edit(f"[Open in Telegraph]({link})")
-
-
-@userge.on_cmd(
-    "character",
+    "char",
     about={
         "header": "Anime Character",
         "description": "Get Info about a Character and much more",
@@ -540,84 +414,3 @@ async def character_search(message: Message):
     else:
         await message.reply(cap_text)
     await message.delete()
-
-
-@userge.on_cmd(
-    "ars",
-    about={
-        "header": "Anime Reverse Search",
-        "description": "Reverse Search any anime by providing "
-        "a snap, or short clip of anime.",
-        "usage": "{tr}ars [reply to Photo/Gif/Video]",
-    },
-)
-async def trace_bek(message: Message):
-    """ Reverse Search Anime Clips/Photos """
-    dls_loc = await media_to_image(message)
-    if dls_loc:
-        async with ClientSession() as session:
-            tracemoe = tracemoepy.AsyncTrace(session=session)
-            search = await tracemoe.search(dls_loc, upload_file=True)
-            os.remove(dls_loc)
-            result = search["docs"][0]
-            caption = (
-                f"**Title**: **{result['title_english']}**\n"
-                f"   🇯🇵 (`{result['title_romaji']} - {result['title_native']}`)\n"
-                f"\n**Anilist ID:** `{result['anilist_id']}`"
-                f"\n**Similarity**: `{result['similarity']*100}`"
-                f"\n**Episode**: `{result['episode']}`"
-            )
-            preview = await tracemoe.natural_preview(search)
-        with open("preview.mp4", "wb") as f:
-            f.write(preview)
-        await message.reply_video("preview.mp4", caption=caption)
-        os.remove("preview.mp4")
-        await message.delete()
-
-
-@userge.on_cmd(
-    "setemp",
-    about={
-        "header": "Anime Template",
-        "description": "Set your own Custom Anime Template "
-        "that will be used to format .anime "
-        "searches [<b>NOTE:</b> Requires "
-        "proper key to be entered in curly braces]",
-        "usage": "{tr}setemp [Reply to text Message | Content]",
-    },
-)
-async def ani_save_template(message: Message):
-    """ Set Custom Template for .anime """
-    text = message.input_or_reply_str
-    if not text:
-        await message.err("Invalid Syntax")
-        return
-    await SAVED.update_one(
-        {"_id": "ANIME_TEMPLATE"}, {"$set": {"anime_data": text}}, upsert=True
-    )
-    await message.edit("Custom Anime Template Saved")
-
-
-@userge.on_cmd(
-    "anitemp",
-    about={
-        "header": "Anime Template Settings",
-        "description": "Remove or View current Custom " "that is being used. ",
-        "flags": {"-d": "Delete Saved Template", "-v": "View Saved Template"},
-        "usage": "{tr}anitemp [A valid flag]",
-    },
-)
-async def view_del_ani(message: Message):
-    """ View or Delete .anime Template """
-    if not message.flags:
-        await message.err("Flag Required")
-        return
-    template = await SAVED.find_one({"_id": "ANIME_TEMPLATE"})
-    if not template:
-        await message.err("No Custom Anime Template Saved Peru")
-        return
-    if "-d" in message.flags:
-        await SAVED.delete_one({"_id": "ANIME_TEMPLATE"})
-        await message.edit("Custom Anime Template deleted Successfully")
-    if "-v" in message.flags:
-        await message.edit(template["anime_data"])
