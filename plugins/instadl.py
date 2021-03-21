@@ -1,17 +1,20 @@
 """ a instagram post downloader plugin """
+#
+# Copyright (C) 2020 by UsergeTeam@Github, < https://github.com/UsergeTeam >.
+#
+# This file is part of < https://github.com/UsergeTeam/Userge > project,
+# and is released under the "GNU v3.0 License Agreement".
+# Please see < https://github.com/uaudith/Userge/blob/master/LICENSE >
+#
+# All rights reserved.
 
 import asyncio
 import os
 import re
 import shutil
+
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
-try:
-    import instaloader
-    from natsort import natsorted
-except ModuleNotFoundError:
-    os.system("pip install instaloader natsort")
-    from natsort import natsorted
 from instaloader import (
     BadCredentialsException,
     ConnectionException,
@@ -23,14 +26,13 @@ from instaloader import (
     Profile,
     TwoFactorAuthRequiredException,
 )
+from natsort import natsorted
 from pyrogram.errors import FloodWait
 from pyrogram.types import InputMediaPhoto, InputMediaVideo
 
 from userge import Config, Message, pool, userge
 from userge.plugins.misc.upload import get_thumb, remove_thumb
 
-INSTA_ID = os.environ.get("INSTA_ID")
-INSTA_PASS = os.environ.get("INSTA_PASS")
 
 # some helpers
 def get_caption(post: Post) -> str:
@@ -187,15 +189,15 @@ async def _insta_post_downloader(message: Message):
         save_metadata=False,
         compress_json=False,
     )
-    if INSTA_ID and INSTA_PASS:
+    if Config.INSTA_ID and Config.INSTA_PASS:
         # try login
         try:
-            insta.load_session_from_file(INSTA_ID)
+            insta.load_session_from_file(Config.INSTA_ID)
             await message.edit("`Logged in with current Session`")
         except FileNotFoundError:
             await message.edit("`Login required. Trying to login`")
             try:
-                insta.login(INSTA_ID, INSTA_PASS)
+                insta.login(Config.INSTA_ID, Config.INSTA_PASS)
             except InvalidArgumentException:
                 await message.err("Provided `INSTA_ID` is incorrect")
                 return
